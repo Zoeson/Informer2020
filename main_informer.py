@@ -99,10 +99,30 @@ for ii in range(args.itr):
                 args.d_model, args.n_heads, args.e_layers, args.d_layers, args.d_ff, args.attn, args.factor, 
                 args.embed, args.distil, args.mix, args.des, ii)
 
-    exp = Exp(args) # set experiments
     print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
+    exp = Exp(args) # set experiments
+
+    # 1. 构造模拟输入（维度必须和你的 args 严格一致）
+    mark_dim = 4
+
+    # 2. 生成随机张量（放在 CPU 或 GPU 上，要和模型设备一致）
+    device = exp.device
+    x_enc = torch.randn(args.batch_size, args.seq_len, args.enc_in).to(device)
+    x_mark_enc = torch.randn(args.batch_size, args.seq_len, mark_dim).to(device)
+    x_dec = torch.randn(args.batch_size, args.label_len + args.pred_len, args.dec_in).to(device)
+    x_mark_dec = torch.randn(args.batch_size, args.label_len + args.pred_len, mark_dim).to(device)
+
+    # 3. 打印模型摘要
+    from torchinfo import summary
+    summary(
+        model=exp.model,
+        input_data=[x_enc, x_mark_enc, x_dec, x_mark_dec],  # 按 forward 的顺序传入
+        col_names=["input_size", "output_size", "num_params"],  # 显示列
+        depth=5,  # 显示层级深度，如果输出太长可以调小
+        verbose=1
+    )
     exp.train(setting)
-    
+
     print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
     exp.test(setting)
 
